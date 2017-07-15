@@ -1,0 +1,71 @@
+<?php
+/* Error reporting */
+error_reporting(E_ALL);
+session_start();
+ini_set('display_errors', TRUE);
+ini_set('display_startup_errors', TRUE);
+
+define('EOL',(PHP_SAPI == 'cli') ? PHP_EOL : '<br />');
+
+include "../config/connection.php";
+
+date_default_timezone_set('ASIA/JAKARTA');
+
+/** Include PHPExcel */
+require_once dirname(__FILE__) . '/../config/PHPExcel/Classes/PHPExcel.php';
+
+// Read from Excel2007 (.xlsx) template
+$objReader = PHPExcel_IOFactory::createReader('Excel2007');
+$objPHPExcel = $objReader->load("../excel_templates/service.xlsx");
+
+/** at this point, we could do some manipulations with the template, but we skip this step */
+// Add your new data to the template
+$objPHPExcel->getActiveSheet()->insertNewRowBefore(5,1);
+
+function cellColor($cells,$color){
+	global $objPHPExcel;
+	$objPHPExcel->getActiveSheet()->getStyle($cells)->getFill()
+	->applyFromArray(array('type' => PHPExcel_Style_Fill::FILL_SOLID,
+		'startcolor' => array('rgb' => $color)
+	));
+}
+
+$queryService = "SELECT * FROM as_services ORDER BY serviceID ASC";
+$sqlService = mysqli_query($connect, $queryService);
+$numsService = mysqli_num_rows($sqlService);
+$i = 6;
+while ($dtService = mysqli_fetch_array($sqlService)){
+	$j = $i - 5;
+	
+	$objPHPExcel->getActiveSheet()->setCellValue('B'.$i, $j);
+	$objPHPExcel->getActiveSheet()->setCellValue('C'.$i, $dtService['serviceID'], PHPExcel_Cell_DataType::TYPE_NUMERIC);
+	$objPHPExcel->getActiveSheet()->setCellValue('D'.$i, $dtService['serviceName'], PHPExcel_Cell_DataType::TYPE_STRING);
+	$objPHPExcel->getActiveSheet()->setCellValue('E'.$i, $dtService['courierID'], PHPExcel_Cell_DataType::TYPE_STRING);
+	$objPHPExcel->getActiveSheet()->setCellValue('F'.$i, $dtService['status'], PHPExcel_Cell_DataType::TYPE_STRING);
+	
+	$i++;
+}
+
+$queryCourier = "SELECT * FROM as_couriers ORDER BY courierID ASC";
+$sqlCourier = mysqli_query($connect, $queryCourier);
+$numsCourier = mysqli_num_rows($sqlCourier);
+$a = 6;
+while ($dtCourier = mysqli_fetch_array($sqlCourier)){
+	
+	$objPHPExcel->getActiveSheet()->setCellValue('H'.$a, $dtCourier['courierID'], PHPExcel_Cell_DataType::TYPE_NUMERIC);
+	$objPHPExcel->getActiveSheet()->setCellValue('I'.$a, $dtCourier['courierName'], PHPExcel_Cell_DataType::TYPE_STRING);
+	
+	$a++;
+}
+
+$ik = 6 + $numsService;
+$objPHPExcel->getActiveSheet()->setCellValue('B'.$ik, "END");
+
+header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+header("Content-Disposition: attachment;filename=service.xlsx");
+header('Cache-Control: max-age=0');
+
+// Export to Excel2007 (.xlsx)
+$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
+$objWriter->save('php://output');
+?>

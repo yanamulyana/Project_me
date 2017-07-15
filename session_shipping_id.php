@@ -1,0 +1,1 @@
+<?php// include headerinclude "header.php";$shippingID = $_POST['shippingID'];$_SESSION['sessShippingID'] = $shippingID;$_SESSION['sessChoosingShipping'] = 2;	echo json_encode("OK");exit();?>
